@@ -134,6 +134,7 @@ dependencies {
   implementation     ("com.fasterxml.jackson.core:jackson-core:2.14.2")
   implementation     ("com.fasterxml.jackson.core:jackson-databind:2.14.2")
   implementation     ("com.jayway.jsonpath:json-path:2.8.0")
+  implementation     ("com.mysql:mysql-connector-j:8.0.33")
 
   
 }
