@@ -31,8 +31,7 @@ public class HttpRequest {
       String responsePayload = EntityUtils.toString(entity);
       httpGet.releaseConnection();
       return responsePayload;
-    } 
-    finally {
+    } finally {
       response.close();
     }
   }

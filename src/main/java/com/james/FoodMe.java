@@ -3,8 +3,11 @@ package com.james;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class FoodMe {
@@ -16,9 +19,13 @@ public class FoodMe {
   private static final String INGREDIENTS_INPUT_MESSAGE = "Enter ingredient #%s%s";
   private static final String RECIPE_RESULTS_MESSAGE = "The results are: \n";
   private static final String SEE_RECIPE_DETAILS_MESSAGE = " \nChoose a receipe to get the information";
-  private static final String RECIPE_RESULTS_LIST = "[%s]%s";
+  private static final String RECIPE_RESULTS_LIST = "[%s] %s";
+  private static final String SAVE_MESSAGE = "Do you want to save this recipe? [Y/N]";
+  private static final String WELCOME_MESSAGE = "Welcome, would you like to view you previously saved recipes? [Y/N]";
 
+  Scanner sc = new Scanner(System.in);
   private int selection;
+  private String title;
 
   public int getSelection() {
     return selection;
@@ -28,10 +35,23 @@ public class FoodMe {
     this.selection = selection;
   }
 
-  Scanner sc = new Scanner(System.in);
+  public String getTitle() {
+    return title;
+  }
+
+  public void setTitle(String title) {
+    this.title = title;
+  }
 
   @SuppressWarnings("unchecked")
-  public void start() throws IOException, URISyntaxException {
+  public void start() throws IOException, URISyntaxException, SQLException {
+    DatabaseConnection dc = new DatabaseConnection();
+    DatabaseExecutor de = new DatabaseExecutor();
+    String userDecision = userDecision(WELCOME_MESSAGE);
+    if (userDecision.equals("Y")) {
+      HashMap<String, String> savedRecipesList = de.queryDatabase(dc.createConnection());
+      displaySavedRecipes(savedRecipesList);
+    }
     String ingredientsList = inputIngredients();
     HttpRequest httpRequest = new HttpRequest();
     URI request = httpRequest.buildRequest("findByIngredients", "ingredients", ingredientsList);
@@ -43,14 +63,17 @@ public class FoodMe {
     responsePayload = httpRequest.makeRequest(request);
     List<String> recipeUrlList = (List<String>) JsonExtractor.extractJsonData(responsePayload, JSON_RECIPE_URL_PATH);
     displayRecipeInformation(recipeUrlList);
-    DatabaseHandler dbh = new DatabaseHandler();
-    dbh.connectToDb();
+    userDecision = userDecision(SAVE_MESSAGE);
+    if (userDecision.equals("Y")) {
+      de.queryDatabase(dc.createConnection(), getTitle(), recipeUrlList.get(0));
+    }
+    dc.closeConnection(dc.createConnection());
   }
 
   public String inputIngredients() {
     List<String> ingredientslist = new ArrayList<String>();
     int i = 0;
-    while (i <= MAX_INGREDIENTS) {
+    while (i < MAX_INGREDIENTS) {
       int order = i + 1;
       System.out.println(String.format(INGREDIENTS_INPUT_MESSAGE, order, ":"));
       String input = sc.next();
@@ -60,34 +83,38 @@ public class FoodMe {
     return String.join(",+", ingredientslist);
   }
 
-  public void selectSavedRecipe() {
-
+  public void displaySavedRecipes(HashMap<String, String> savedRecipesList) {
+    for (Map.Entry<String, String> entry : savedRecipesList.entrySet()) {
+      System.out.println(String.format(RECIPE_RESULTS_LIST, entry.getKey(), entry.getValue()));
+    }
   }
 
-  public void saveRecipe() {
-
+  public String userDecision(String message) {
+    String input;
+    do {
+      System.out.println(message);
+      input = sc.next();
+    } while (!(input.equals("Y")) && !(input.equals("N")));
+    return input;
   }
 
   public void displayRecipeResults(List<String> titleList) {
-
-    System.out.println(titleList.size());
-
+    int input;
+    System.out.println(titleList);
     System.out.println(RECIPE_RESULTS_MESSAGE);
     for (String title : titleList) {
       System.out.println(String.format(RECIPE_RESULTS_LIST, titleList.indexOf(title), title));
     }
     System.out.println(SEE_RECIPE_DETAILS_MESSAGE);
-    int choice = sc.nextInt();
-    setSelection(choice);
+    input = sc.nextInt();
+    setSelection(input);
+    setTitle(titleList.get(input));
   }
 
   public void displayRecipeInformation(List<String> recipeUrlList) {
-
     System.out.println(recipeUrlList.get(0));
-
   }
 
   public void displayRandomRecipe() {
-
   }
 }
